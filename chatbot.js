@@ -10,6 +10,9 @@
     return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
   });
 }
+  function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
   function initChatbot() {
     console.log("✅ Initializing chatbot UI");
 
@@ -132,20 +135,29 @@ https://example.com/product-information-guide.pdf`;
 
       // Email capture flow
       if (awaitingEmail) {
-        awaitingEmail = false;
+  if (!isValidEmail(userMessage)) {
+    messages.innerHTML += `
+      <div><b>Bot:</b> That doesn’t look like a valid email. Could you please enter a valid email address?</div>
+    `;
+    messages.scrollTop = messages.scrollHeight;
+    return;
+  }
 
-        messages.innerHTML += `
-          <div><b>Bot:</b> Thanks! Our sales team will reach out to you shortly.</div>
-        `;
+  awaitingEmail = false;
 
-        track({
-          event_name: "chatbot_sales_lead_submitted",
-          user_email: userMessage
-        });
+  messages.innerHTML += `
+    <div><b>Bot:</b> Thanks! Our sales team will reach out to you shortly.</div>
+  `;
 
-        messages.scrollTop = messages.scrollHeight;
-        return;
-      }
+  track({
+    event_name: "chatbot_sales_lead_submitted",
+    user_email: userMessage
+  });
+
+  messages.scrollTop = messages.scrollHeight;
+  return;
+}
+
 
       track({
         event_name: "chatbot_question_asked",
@@ -171,4 +183,5 @@ https://example.com/product-information-guide.pdf`;
     initChatbot();
   }
 })();
+
 
