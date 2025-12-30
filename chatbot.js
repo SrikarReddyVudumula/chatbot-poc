@@ -4,6 +4,12 @@
   // -------------------------------
   // Initialize chatbot UI
   // -------------------------------
+  function linkify(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, function (url) {
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+  });
+}
   function initChatbot() {
     console.log("✅ Initializing chatbot UI");
 
@@ -80,8 +86,8 @@
     // Initial message
     // -------------------------------
     messages.innerHTML += `
-      <div><b>Bot:</b> Hi 👋 I can help you with products, shipping, or connecting you to sales.</div>
-    `;
+  <div><b>Bot:</b> ${linkify(botReply).replace(/\n/g, "<br>")}</div>
+`;
 
     track({ event_name: "chatbot_loaded" });
 
@@ -165,3 +171,4 @@ https://example.com/product-information-guide.pdf`;
     initChatbot();
   }
 })();
+
