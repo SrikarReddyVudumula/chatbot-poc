@@ -1,26 +1,34 @@
 (function () {
   console.log("✅ chatbot.js EXECUTED");
 
-  // -------------------------------
-  // Initialize chatbot UI
-  // -------------------------------
-  function linkify(text) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.replace(urlRegex, function (url) {
-    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-  });
-}
-  function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+  // --------------------------------
+  // Initialize chatbot
+  // --------------------------------
   function initChatbot() {
     console.log("✅ Initializing chatbot UI");
 
-    // Avoid duplicate injection
-    if (document.getElementById("chatbox")) {
-      return;
+    // Prevent duplicate load
+    if (document.getElementById("chatbox")) return;
+
+    // ---------- Helpers ----------
+    function track(eventData) {
+      if (window.utag) {
+        utag.link(eventData);
+      }
     }
 
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function linkify(text) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, function (url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+    }
+
+    // ---------- UI ----------
     const container = document.createElement("div");
     container.innerHTML = `
       <div id="chatbox" style="
@@ -68,7 +76,6 @@
         />
       </div>
     `;
-
     document.body.appendChild(container);
 
     const messages = document.getElementById("messages");
@@ -76,37 +83,27 @@
 
     let awaitingEmail = false;
 
-    // -------------------------------
-    // Tealium helper
-    // -------------------------------
-    function track(eventData) {
-      if (window.utag) {
-        utag.link(eventData);
-      }
-    }
-
-    // -------------------------------
-    // Initial message
-    // -------------------------------
+    // ---------- Initial Message ----------
     messages.innerHTML += `
-  <div><b>Bot:</b> ${linkify(botReply).replace(/\n/g, "<br>")}</div>
-`;
-
+      <div><b>Bot:</b> Hi 👋 I can help you with products, shipping, or connecting you to sales.</div>
+    `;
     track({ event_name: "chatbot_loaded" });
 
-    // -------------------------------
-    // Mock chatbot logic (Option A)
-    // -------------------------------
+    // ---------- Mock Bot Logic ----------
     async function getBotResponse(message) {
       const msg = message.toLowerCase();
 
-      if (msg.includes("product") || msg.includes("documentation")) {
+      if (msg.includes("product") || msg.includes("details") || msg.includes("documentation")) {
         return `You can find detailed product information here:
 https://example.com/product-information-guide.pdf`;
       }
 
+      if (msg.includes("category")) {
+        return "We offer Men's Apparel, Women's Apparel, Accessories, Footwear, and Lifestyle products.";
+      }
+
       if (msg.includes("shipping")) {
-        return "Orders are shipped after checkout. Shipping details are shown during the checkout process.";
+        return "Orders are shipped after checkout. Shipping details are available during checkout.";
       }
 
       if (msg.includes("sales") || msg.includes("contact")) {
@@ -114,16 +111,14 @@ https://example.com/product-information-guide.pdf`;
         return "Sure 🙂 Please share your email address and our sales team will contact you.";
       }
 
-      if (msg.includes("category")) {
-        return "We offer Men's Apparel, Women's Apparel, Accessories, Footwear, and Lifestyle products.";
+      if (msg.includes("faq")) {
+        return "You can ask me about products, categories, shipping, or request a sales contact.";
       }
 
-      return "I can help with product details, shipping info, or connecting you with sales.";
+      return "I can help with product information, shipping details, or connecting you with sales.";
     }
 
-    // -------------------------------
-    // Input handler
-    // -------------------------------
+    // ---------- Input Handler ----------
     input.addEventListener("keydown", async function (e) {
       if (e.key !== "Enter") return;
 
@@ -133,32 +128,32 @@ https://example.com/product-information-guide.pdf`;
       input.value = "";
       messages.innerHTML += `<div><b>You:</b> ${userMessage}</div>`;
 
-      // Email capture flow
+      // ----- Email capture flow -----
       if (awaitingEmail) {
-  if (!isValidEmail(userMessage)) {
-    messages.innerHTML += `
-      <div><b>Bot:</b> That doesn’t look like a valid email. Could you please enter a valid email address?</div>
-    `;
-    messages.scrollTop = messages.scrollHeight;
-    return;
-  }
+        if (!isValidEmail(userMessage)) {
+          messages.innerHTML += `
+            <div><b>Bot:</b> That doesn’t look like a valid email. Please enter a valid email address.</div>
+          `;
+          messages.scrollTop = messages.scrollHeight;
+          return;
+        }
 
-  awaitingEmail = false;
+        awaitingEmail = false;
 
-  messages.innerHTML += `
-    <div><b>Bot:</b> Thanks! Our sales team will reach out to you shortly.</div>
-  `;
+        messages.innerHTML += `
+          <div><b>Bot:</b> Thanks! Our sales team will reach out to you shortly.</div>
+        `;
 
-  track({
-    event_name: "chatbot_sales_lead_submitted",
-    user_email: userMessage
-  });
+        track({
+          event_name: "chatbot_sales_lead_submitted",
+          user_email: userMessage
+        });
 
-  messages.scrollTop = messages.scrollHeight;
-  return;
-}
+        messages.scrollTop = messages.scrollHeight;
+        return;
+      }
 
-
+      // ----- Normal chatbot flow -----
       track({
         event_name: "chatbot_question_asked",
         chatbot_question: userMessage
@@ -167,21 +162,19 @@ https://example.com/product-information-guide.pdf`;
       const botReply = await getBotResponse(userMessage);
 
       messages.innerHTML += `
-        <div><b>Bot:</b> ${botReply.replace(/\n/g, "<br>")}</div>
+        <div><b>Bot:</b> ${linkify(botReply).replace(/\n/g, "<br>")}</div>
       `;
 
       messages.scrollTop = messages.scrollHeight;
     });
   }
 
-  // -------------------------------
-  // 🔥 Tealium-safe execution
-  // -------------------------------
+  // --------------------------------
+  // Tealium-safe execution
+  // --------------------------------
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initChatbot);
   } else {
     initChatbot();
   }
 })();
-
-
